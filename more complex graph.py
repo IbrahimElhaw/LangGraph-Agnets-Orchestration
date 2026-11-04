@@ -126,7 +126,7 @@ def accept_coding(state: MyState):
         }
     return {
         "messages":[{"role": "user", "content": text}],
-        "next_node": "changing",
+        "next_node": "change",
         "agent_name": "code_agent"
     }
 ##################################################################
@@ -148,8 +148,12 @@ graph_builder.add_conditional_edges("classifier",
 graph_builder.add_edge("chat_agent", END)
 graph_builder.add_conditional_edges(
     "accept_coding",
-    lambda state: "end" if state.get("next_node") == "denied" else "code_agent",
-    {"end": END, "code_agent": "code_agent"},
+    lambda state: state.get("next_node"),
+    {
+        "denied": END,
+        "accepted": "code_agent",
+        "change": "classifier",
+    },
 )
 graph_builder.add_edge("rag_agent", END)
 graph_builder.add_edge("code_agent", END)
@@ -161,7 +165,7 @@ config : RunnableConfig = {
 }
 
 Path("graph.png").write_bytes(graph.get_graph().draw_mermaid_png())
-
+exit()
 while True:
     user_message = input("_________\nEnter your message: ")
     if user_message=="exit":
