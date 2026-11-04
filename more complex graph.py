@@ -164,16 +164,45 @@ config : RunnableConfig = {
     "configurable":{"thread_id": str(uuid.uuid4())},
 }
 
-Path("graph.png").write_bytes(graph.get_graph().draw_mermaid_png())
-exit()
+# Path("graph.png").write_bytes(graph.get_graph().draw_mermaid_png())
+from langgraph.types import Command
+
+STREAMING_NODES = ("chat_agent", "rag_agent", "code_agent")
+
+
+def run(input_data):
+    """Stream one run. Returns the interrupt prompt if the graph paused, else None."""
+    interrupt_prompt = None
+    printed_agent = None
+
+    for mode, data in graph.stream(
+        input_data,
+        config=config,
+        stream_mode=["messages", "updates"],
+    ):
+        if mode == "messages":
+            token, metadata = data
+            node = metadata.get("langgraph_node")
+            if node in STREAMING_NODES and token.content:
+                if printed_agent != node:
+                    print(f"\n[{node}] ", end="", flush=True)
+                    printed_agent = node
+                print(token.content, end="", flush=True)
+
+        elif mode == "updates" and "__interrupt__" in data:
+            interrupt_prompt = data["__interrupt__"][0].value
+
+    print()
+    return interrupt_prompt
+
+
 while True:
     user_message = input("_________\nEnter your message: ")
-    if user_message=="exit":
+    if user_message.strip().lower() == "exit":
         break
-    answer = graph.invoke({"messages": [{"role": "user", "content": user_message}]},
-                          config=config)
-    while "__interrupt__" in answer:
-        prompt = answer["__interrupt__"][0].value
-        decision = input(f"{prompt}\n ")
-        answer = graph.invoke(Command(resume=decision), config=config)
-    print(answer["agent_name"], answer["messages"][-1].content)
+
+    prompt = run({"messages": [{"role": "user", "content": user_message}]})
+
+    while prompt:
+        decision = input(f"\n{prompt}\n> ")
+        prompt = run(Command(resume=decision))
