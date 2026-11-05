@@ -24,10 +24,11 @@ HANDLE_CODE_PROMPT = ("classify if the user wants to accept, deny or change the 
 
 
 llm = init_chat_model(
-    model="gemma3:1b",
+    model="qwen2.5:3b",
     model_provider="ollama",
     temperature=0,
 )
+
 
 class IntentClassification(BaseModel):
     message_intent: Literal["chat", "knowledge", "code"] = Field(..., description=CLASSIFYING_PROPMT)

@@ -1,0 +1,7 @@
+langgraph
+langchain
+langchain-core
+langchain-ollama
+pydantic
+typing_extensions
+numpy
